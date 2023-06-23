@@ -33,13 +33,13 @@ public class Inference_informative : MonoBehaviour {
         thresholdBoolOutput = Mathf.Abs(1f - Mathf.Clamp(skeleton_threshold, 0f, 1f));
     }
 
-    private void Update() {
-        if (Input.GetKeyDown(KeyCode.Space) && ready) {
-            StartCoroutine(DoInference());
+    public void DoInference() {
+        if (ready) {
+            StartCoroutine(DoInferenceCR());
         }
     }
 
-    IEnumerator DoInference() {
+    private IEnumerator DoInferenceCR() {
         ready = false;
         Screenshot(Camera.main);
 
