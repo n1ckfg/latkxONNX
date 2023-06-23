@@ -16,6 +16,7 @@ public class Inference_informative : MonoBehaviour {
     public int trace_c = 10;
     public int minPoints = 2;
     public float distanceThreshold = 1f;
+    public int scaleDownFactor = 3;
 
     [HideInInspector] public RenderTexture inputTex;
     [HideInInspector] public RenderTexture outputTex;
@@ -32,13 +33,13 @@ public class Inference_informative : MonoBehaviour {
         thresholdBoolOutput = Mathf.Abs(1f - Mathf.Clamp(skeleton_threshold, 0f, 1f));
     }
 
-    public void DoInference() {
-        if (ready) {
-            StartCoroutine(DoInferenceCR());
+    private void Update() {
+        if (Input.GetKeyDown(KeyCode.Space) && ready) {
+            StartCoroutine(DoInference());
         }
     }
 
-    private IEnumerator DoInferenceCR() {
+    IEnumerator DoInference() {
         ready = false;
         Screenshot(Camera.main);
 
@@ -109,7 +110,9 @@ public class Inference_informative : MonoBehaviour {
    private void OnDestroy() {
         worker?.Dispose();
 
+        if (inputTex != null) inputTex.Release();
         if (outputTex != null) outputTex.Release();
+        inputTex = null;
         outputTex = null;
     }
 
@@ -145,7 +148,7 @@ public class Inference_informative : MonoBehaviour {
 
     private void Screenshot(Camera cam) {
         if (inputTex != null) inputTex.Release();
-        inputTex = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGB32);
+        inputTex = new RenderTexture(Screen.width/scaleDownFactor, Screen.height/scaleDownFactor, 0, RenderTextureFormat.ARGB32);
         inputTex.enableRandomWrite = true;
         inputTex.Create();
 

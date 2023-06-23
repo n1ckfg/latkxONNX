@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.18028378, g: 0.22571412, b: 0.30692285, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -898,11 +898,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 842067006}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9a435b94ee3b744458ff28e60b132186, type: 3}
+  m_Script: {fileID: 11500000, guid: a0ca38da38b05334cb0b29201c788dfe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   nnModel: {fileID: 5022602860645237092, guid: 46d4bdd1f6ba837438c0cd5c37ed9671, type: 3}
-  targetMtl: {fileID: 2100000, guid: f8e80aed897d1ad479b6bdd09d5c144f, type: 2}
+  targetMtl: {fileID: 2100000, guid: c4574e9f686791d43825b47d2e4ac1c9, type: 2}
   targetMtlProp: _MainTex
   displayOutputTexture: 1
   latk: {fileID: 1409356140}
@@ -910,6 +910,7 @@ MonoBehaviour:
   trace_c: 1
   minPoints: 3
   distanceThreshold: 0.5
+  scaleDownFactor: 3
   inputTex: {fileID: 0}
   outputTex: {fileID: 0}
 --- !u!1001 &897071944
@@ -1463,7 +1464,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: f8e80aed897d1ad479b6bdd09d5c144f, type: 2}
+  - {fileID: 2100000, guid: c4574e9f686791d43825b47d2e4ac1c9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
