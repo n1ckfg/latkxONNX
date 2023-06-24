@@ -18,6 +18,8 @@ public class Inference_informative : MonoBehaviour {
     public int minPoints = 2;
     public float distanceThreshold = 1f;
     public int scaleDownFactor = 3;
+    public bool flipX = false;
+    public bool flipY = true;
 
     [HideInInspector] public RenderTexture inputTex;
     [HideInInspector] public RenderTexture outputTex;
@@ -28,7 +30,11 @@ public class Inference_informative : MonoBehaviour {
     private float thresholdBoolOutput;
 
     private void Start() {
-        if (cam == null) cam = Camera.main;
+        if (cam == null) {
+            cam = Camera.main;
+        } else {
+            cam.enabled = false;
+        }
 
         model = ModelLoader.Load(nnModel);
         //worker = WorkerFactory.CreateWorker(model, WorkerFactory.Device.GPU);
@@ -82,9 +88,12 @@ public class Inference_informative : MonoBehaviour {
             for (int j = 0; j < traceOutput[i].Count; j++) {
                 float x = ((float) traceOutput[i][j][0] / (float) inputTex.width) * (float) Screen.width;
                 float y = ((float) traceOutput[i][j][1] / (float) inputTex.height) * (float) Screen.height;
-                //Debug.Log(x + ", " + y + ", " + w + ", " + h);
-                Vector2 point2D = new Vector2(x, Screen.height - y);// / w, 1f - (y / w));
-                //Debug.Log(point2D.x + ", " + point2D.y);
+
+                if (flipX) x = Screen.width - x;
+                if (flipY) y = Screen.height - y;
+
+                Vector2 point2D = new Vector2(x, y);
+
                 Vector3 point3D = FindWorldSpaceCoords(point2D);
                 if (point3D != Vector3.zero) points.Add(point3D);
             }
@@ -135,8 +144,11 @@ public class Inference_informative : MonoBehaviour {
         tempTexture.SetPixels(colors);
         tempTexture.Apply();
 
-        //Graphics.CopyTexture(tempTexture, outputTex);
-        Graphics.Blit(tempTexture, outputTex, new Vector2(1.0f, -1.0f), new Vector2(0f, 0f));
+        float x = 1f;
+        float y = 1f;
+        if (flipX) x = -1f;
+        if (flipY) y = -1f;
+        Graphics.Blit(tempTexture, outputTex, new Vector2(x, y), new Vector2(0f, 0f));
                 
         Destroy(tempTexture);
     }
@@ -155,15 +167,23 @@ public class Inference_informative : MonoBehaviour {
         inputTex.enableRandomWrite = true;
         inputTex.Create();
 
+        cam.enabled = true;
+        matchCameraSettings(cam);
         cam.targetTexture = inputTex;
         cam.Render();
-        //RenderTexture.active = inputTex;
         cam.targetTexture = null;
-        //RenderTexture.active = null;
+        cam.enabled = false;
+    }
+
+    private void matchCameraSettings(Camera cam) {
+        cam.nearClipPlane = Camera.main.nearClipPlane;
+        cam.farClipPlane = Camera.main.farClipPlane;
+        cam.fieldOfView = Camera.main.fieldOfView;
+        cam.focalLength = Camera.main.focalLength;
     }
 
     private Vector3 FindWorldSpaceCoords(Vector2 inputPoint) {
-        Ray ray = cam.ScreenPointToRay(inputPoint);
+        Ray ray = cam.ScreenPointToRay(inputPoint, Camera.MonoOrStereoscopicEye.Mono);
         RaycastHit hit;
 
         if (Physics.Raycast(ray, out hit)) {
