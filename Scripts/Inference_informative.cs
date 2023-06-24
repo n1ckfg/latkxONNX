@@ -8,6 +8,8 @@ using Unity.Barracuda;
 public class Inference_informative : MonoBehaviour {
 
     public Camera cam;
+    public bool cameraIsMain = true;
+    public bool followMainCamera = true;
     public NNModel nnModel;
     public Material targetMtl;
     public string targetMtlProp = "_MainTex";
@@ -28,21 +30,23 @@ public class Inference_informative : MonoBehaviour {
     private IWorker worker;
     private bool ready = true;
     private float thresholdBoolOutput;
-    private bool cameraIsMain = true;
 
     private void Start() {
-        if (cam == null) {
-            cam = Camera.main;
-            cameraIsMain = true;
-        } else {
+        if (!cameraIsMain) {
             cam.enabled = false;
-            cameraIsMain = false;
         }
-
+        
         model = ModelLoader.Load(nnModel);
         //worker = WorkerFactory.CreateWorker(model, WorkerFactory.Device.GPU);
         worker = WorkerFactory.CreateWorker(WorkerFactory.Type.Auto, model);
         thresholdBoolOutput = Mathf.Abs(1f - Mathf.Clamp(skeleton_threshold, 0f, 1f));
+    }
+
+    private void Update() {
+        if (!cameraIsMain && followMainCamera) {
+            cam.transform.position = Camera.main.transform.position;
+            cam.transform.rotation = Camera.main.transform.rotation;
+        }
     }
 
     public void DoInference() {
@@ -192,7 +196,8 @@ public class Inference_informative : MonoBehaviour {
     }
 
     private Vector3 FindWorldSpaceCoords(Vector2 inputPoint) {
-        Ray ray = cam.ScreenPointToRay(inputPoint, Camera.MonoOrStereoscopicEye.Mono);
+        Ray ray = cam.ScreenPointToRay(inputPoint);
+
         RaycastHit hit;
 
         if (Physics.Raycast(ray, out hit)) {
