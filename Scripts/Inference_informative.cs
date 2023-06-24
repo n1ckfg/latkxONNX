@@ -8,8 +8,9 @@ using Unity.Barracuda;
 public class Inference_informative : MonoBehaviour {
 
     public Camera cam;
-    public bool cameraIsMain = true;
-    public bool followMainCamera = true;
+    public bool camIsMain = true;
+    public bool followMainCam = true;
+    public bool matchMainCamSettings = true;
     public NNModel nnModel;
     public Material targetMtl;
     public string targetMtlProp = "_MainTex";
@@ -32,7 +33,7 @@ public class Inference_informative : MonoBehaviour {
     private float thresholdBoolOutput;
 
     private void Start() {
-        if (!cameraIsMain) {
+        if (!camIsMain) {
             cam.enabled = false;
         }
         
@@ -43,7 +44,7 @@ public class Inference_informative : MonoBehaviour {
     }
 
     private void Update() {
-        if (!cameraIsMain && followMainCamera) {
+        if (!camIsMain && followMainCam) {
             cam.transform.position = Camera.main.transform.position;
             cam.transform.rotation = Camera.main.transform.rotation;
         }
@@ -174,21 +175,21 @@ public class Inference_informative : MonoBehaviour {
         inputTex.enableRandomWrite = true;
         inputTex.Create();
 
-        if (!cameraIsMain) {
+        if (!camIsMain) {
             cam.enabled = true;
-            matchMainCameraSettings(cam);
+            if (matchMainCamSettings) doMatchMainCamSettings(cam);
         }
 
         cam.targetTexture = inputTex;
         cam.Render();
         cam.targetTexture = null;
 
-        if (!cameraIsMain) {
+        if (!camIsMain) {
             cam.enabled = false;
         }
     }
 
-    private void matchMainCameraSettings(Camera cam) {
+    private void doMatchMainCamSettings(Camera cam) {
         cam.nearClipPlane = Camera.main.nearClipPlane;
         cam.farClipPlane = Camera.main.farClipPlane;
         cam.fieldOfView = Camera.main.fieldOfView;
@@ -196,7 +197,7 @@ public class Inference_informative : MonoBehaviour {
     }
 
     private Vector3 FindWorldSpaceCoords(Vector2 inputPoint) {
-        Ray ray = cam.ScreenPointToRay(inputPoint);
+        Ray ray = cam.ScreenPointToRay(inputPoint, Camera.MonoOrStereoscopicEye.Mono);
 
         RaycastHit hit;
 
