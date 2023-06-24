@@ -867,6 +867,7 @@ GameObject:
   m_Component:
   - component: {fileID: 842067008}
   - component: {fileID: 842067009}
+  - component: {fileID: 842067010}
   m_Layer: 0
   m_Name: ONNX
   m_TagString: Untagged
@@ -901,6 +902,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0ca38da38b05334cb0b29201c788dfe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  cam: {fileID: 0}
   nnModel: {fileID: 5022602860645237092, guid: 46d4bdd1f6ba837438c0cd5c37ed9671, type: 3}
   targetMtl: {fileID: 2100000, guid: c4574e9f686791d43825b47d2e4ac1c9, type: 2}
   targetMtlProp: _MainTex
@@ -913,6 +915,19 @@ MonoBehaviour:
   scaleDownFactor: 3
   inputTex: {fileID: 0}
   outputTex: {fileID: 0}
+--- !u!114 &842067010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 842067006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd40284cb9964194e8558b1ecdfdc97b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  onnx: {fileID: 842067009}
 --- !u!1001 &897071944
 PrefabInstance:
   m_ObjectHideFlags: 0
