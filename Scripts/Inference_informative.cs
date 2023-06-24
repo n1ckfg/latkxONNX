@@ -28,12 +28,15 @@ public class Inference_informative : MonoBehaviour {
     private IWorker worker;
     private bool ready = true;
     private float thresholdBoolOutput;
+    private bool cameraIsMain = true;
 
     private void Start() {
         if (cam == null) {
             cam = Camera.main;
+            cameraIsMain = true;
         } else {
             cam.enabled = false;
+            cameraIsMain = false;
         }
 
         model = ModelLoader.Load(nnModel);
@@ -167,15 +170,21 @@ public class Inference_informative : MonoBehaviour {
         inputTex.enableRandomWrite = true;
         inputTex.Create();
 
-        cam.enabled = true;
-        matchCameraSettings(cam);
+        if (!cameraIsMain) {
+            cam.enabled = true;
+            matchMainCameraSettings(cam);
+        }
+
         cam.targetTexture = inputTex;
         cam.Render();
         cam.targetTexture = null;
-        cam.enabled = false;
+
+        if (!cameraIsMain) {
+            cam.enabled = false;
+        }
     }
 
-    private void matchCameraSettings(Camera cam) {
+    private void matchMainCameraSettings(Camera cam) {
         cam.nearClipPlane = Camera.main.nearClipPlane;
         cam.farClipPlane = Camera.main.farClipPlane;
         cam.fieldOfView = Camera.main.fieldOfView;
