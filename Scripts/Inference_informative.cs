@@ -7,6 +7,7 @@ using Unity.Barracuda;
 
 public class Inference_informative : MonoBehaviour {
 
+    public Camera cam;
     public NNModel nnModel;
     public Material targetMtl;
     public string targetMtlProp = "_MainTex";
@@ -27,6 +28,8 @@ public class Inference_informative : MonoBehaviour {
     private float thresholdBoolOutput;
 
     private void Start() {
+        if (cam == null) cam = Camera.main;
+
         model = ModelLoader.Load(nnModel);
         //worker = WorkerFactory.CreateWorker(model, WorkerFactory.Device.GPU);
         worker = WorkerFactory.CreateWorker(WorkerFactory.Type.Auto, model);
@@ -41,7 +44,7 @@ public class Inference_informative : MonoBehaviour {
 
     IEnumerator DoInference() {
         ready = false;
-        Screenshot(Camera.main);
+        Screenshot(cam);
 
         // Do inference
         var channelCount = 3; // 1 = grayscale, 3 = rgb, 4 = rgba
@@ -160,7 +163,7 @@ public class Inference_informative : MonoBehaviour {
     }
 
     private Vector3 FindWorldSpaceCoords(Vector2 inputPoint) {
-        Ray ray = Camera.main.ScreenPointToRay(inputPoint);
+        Ray ray = cam.ScreenPointToRay(inputPoint);
         RaycastHit hit;
 
         if (Physics.Raycast(ray, out hit)) {
