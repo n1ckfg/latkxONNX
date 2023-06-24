@@ -103,7 +103,7 @@ public class Inference_informative : MonoBehaviour {
         }
 
         for (int i=0; i<separatedStrokes.Count; i++) {
-            latk.inputInstantiateStroke(Color.red, separatedStrokes[i]);
+            latk.inputInstantiateStroke(latk.mainColor, separatedStrokes[i]);
         }
 
         ready = true;
