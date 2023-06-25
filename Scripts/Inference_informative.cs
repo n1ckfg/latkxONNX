@@ -8,10 +8,11 @@ using Unity.Barracuda;
 public class Inference_informative : MonoBehaviour {
 
     public Camera cam;
+    public Transform followTarget;
     public bool camIsMain = true;
-    public bool followMainCam = true;
-    public bool matchMainCamSettings = true;
+    public bool matchMainCamSettings = false;
     public NNModel nnModel;
+    public int inferenceResolution = 512;
     public Material targetMtl;
     public string targetMtlProp = "_MainTex";
     public bool displayOutputTexture = true;
@@ -20,13 +21,15 @@ public class Inference_informative : MonoBehaviour {
     public int trace_c = 10;
     public int minPoints = 2;
     public float distanceThreshold = 1f;
-    public int scaleDownFactor = 3;
-    public bool flipX = false;
-    public bool flipY = true;
+    public bool flipInputX = false;
+    public bool flipInputY = true;
+    public bool flipOutputX = true;
+    public bool flipOutputY = false;
 
-    [HideInInspector] public RenderTexture inputTex;
-    [HideInInspector] public RenderTexture outputTex;
-
+    [HideInInspector] public RenderTexture inputRTex;
+    [HideInInspector] public RenderTexture infRTex;
+    [HideInInspector] public RenderTexture outputRTex;
+    
     private Model model;
     private IWorker worker;
     private bool ready = true;
@@ -44,9 +47,9 @@ public class Inference_informative : MonoBehaviour {
     }
 
     private void Update() {
-        if (!camIsMain && followMainCam) {
-            cam.transform.position = Camera.main.transform.position;
-            cam.transform.rotation = Camera.main.transform.rotation;
+        if (!camIsMain && followTarget != null) {
+            cam.transform.position = followTarget.position;
+            cam.transform.rotation = followTarget.rotation;
         }
     }
 
@@ -60,27 +63,33 @@ public class Inference_informative : MonoBehaviour {
         ready = false;
         Screenshot(cam);
 
+        if (infRTex != null) infRTex.Release();
+        infRTex = new RenderTexture(inferenceResolution, inferenceResolution, 0, RenderTextureFormat.ARGB32);
+        infRTex.enableRandomWrite = true;
+        infRTex.Create();
+        Graphics.Blit(inputRTex, infRTex);
+
         // Do inference
         var channelCount = 3; // 1 = grayscale, 3 = rgb, 4 = rgba
-        var inputX = new Tensor(inputTex, channelCount);
+        var inputX = new Tensor(infRTex, channelCount);
         Tensor outputY = worker.Execute(inputX).PeekOutput();
         inputX.Dispose(); // Barracuda objects are not GC'd
         float[] outputFloats = outputY.AsFloats();
 
         // View output as texture
         if (displayOutputTexture) {
-            if (outputTex != null) outputTex.Release();
-            outputTex = new RenderTexture(inputTex.width, inputTex.height, 0, RenderTextureFormat.ARGB32);
-            outputTex.enableRandomWrite = true;
-            outputTex.Create();
+            if (outputRTex != null) outputRTex.Release();
+            outputRTex = new RenderTexture(infRTex.width, infRTex.height, 0, RenderTextureFormat.ARGB32);
+            outputRTex.enableRandomWrite = true;
+            outputRTex.Create();
             SetTexFromFloats(outputFloats);
-            targetMtl.SetTexture(targetMtlProp, outputTex);
+            targetMtl.SetTexture(targetMtlProp, outputRTex);
         }
         
         // Convert output to polylines
         bool[] outputBools = SetBoolsFromFloats(outputFloats);
-        TraceSkeleton.thinningZS(outputBools, inputTex.width, inputTex.height);
-        List<List<int[]>> traceOutput = TraceSkeleton.traceSkeleton(outputBools, inputTex.width, inputTex.height, trace_c);
+        TraceSkeleton.thinningZS(outputBools, infRTex.width, infRTex.height);
+        List<List<int[]>> traceOutput = TraceSkeleton.traceSkeleton(outputBools, infRTex.width, infRTex.height, trace_c);
 
         float w = (float) Screen.width;
         float h = (float) Screen.height;
@@ -94,11 +103,11 @@ public class Inference_informative : MonoBehaviour {
             //Debug.Log("Found " + traceOutput[i].Count + " points in line " + i + ".");
 
             for (int j = 0; j < traceOutput[i].Count; j++) {
-                float x = ((float) traceOutput[i][j][0] / (float) inputTex.width) * (float) Screen.width;
-                float y = ((float) traceOutput[i][j][1] / (float) inputTex.height) * (float) Screen.height;
+                float x = ((float) traceOutput[i][j][0] / (float) infRTex.width) * (float) Screen.width;
+                float y = ((float) traceOutput[i][j][1] / (float) infRTex.height) * (float) Screen.height;
 
-                if (flipX) x = Screen.width - x;
-                if (flipY) y = Screen.height - y;
+                if (flipInputX) x = Screen.width - x;
+                if (flipInputY) y = Screen.height - y;
 
                 Vector2 point2D = new Vector2(x, y);
 
@@ -130,63 +139,75 @@ public class Inference_informative : MonoBehaviour {
    private void OnDestroy() {
         worker?.Dispose();
 
-        if (inputTex != null) inputTex.Release();
-        if (outputTex != null) outputTex.Release();
-        inputTex = null;
-        outputTex = null;
+        if (inputRTex != null) inputRTex.Release();
+        if (infRTex != null) infRTex.Release();
+        if (outputRTex != null) outputRTex.Release();
+
+        inputRTex = null;
+        infRTex = null;
+        outputRTex = null;
     }
 
     private void SetTexFromFloats(float[] floatArray) {
-        Debug.Log(floatArray.Length + ", " + inputTex.width + ", " + inputTex.height);
-        if (floatArray.Length < inputTex.width * inputTex.height) {
+        int numPixels = infRTex.width * infRTex.height;
+
+        if (floatArray.Length < numPixels) {
             Debug.LogError("Float array size is smaller than RenderTexture size.");
             return;
         }
 
-        Texture2D tempTexture = new Texture2D(inputTex.width, inputTex.height, TextureFormat.ARGB32, false);
+        Texture2D tempTex = new Texture2D(infRTex.width, infRTex.height, TextureFormat.ARGB32, false);
 
-        Color[] colors = new Color[inputTex.width * inputTex.height];
-        for (int i = 0; i < inputTex.width * inputTex.height; i++) {
+        Color[] colors = new Color[numPixels];
+        for (int i = 0; i < colors.Length; i++) {
             colors[i] = new Color(floatArray[i], floatArray[i], floatArray[i], 1f);
         }
-        tempTexture.SetPixels(colors);
-        tempTexture.Apply();
+        tempTex.SetPixels(colors);
+        tempTex.Apply();
 
         float x = 1f;
         float y = 1f;
-        if (flipX) x = -1f;
-        if (flipY) y = -1f;
-        Graphics.Blit(tempTexture, outputTex, new Vector2(x, y), new Vector2(0f, 0f));
-                
-        Destroy(tempTexture);
+        if (flipOutputX) x = -1f;
+        if (flipOutputY) y = -1f;
+        Graphics.Blit(tempTex, outputRTex, new Vector2(x, y), new Vector2(0f, 0f));
+
+        Destroy(tempTex);
+
+        Debug.Log("Floats: " + floatArray.Length + ", pixels: " + numPixels + "\n" +
+                  "tempTex: " + tempTex.width + ", " + tempTex.height + "\n" + 
+                  "outputRTex: " + outputRTex.width + ", " + outputRTex.height);
     }
 
     private bool[] SetBoolsFromFloats(float[] floatArray) {
-        bool[] returns = new bool[inputTex.width * inputTex.height];
-        for (int i=0; i< inputTex.width * inputTex.height; i++) {
+        int numPixels = infRTex.width * infRTex.height;
+        bool[] returns = new bool[numPixels];
+        for (int i=0; i<returns.Length; i++) {
             returns[i] = floatArray[i] < thresholdBoolOutput ? true : false;
         }
         return returns;
     }
 
     private void Screenshot(Camera cam) {
-        if (inputTex != null) inputTex.Release();
-        inputTex = new RenderTexture(Screen.width/scaleDownFactor, Screen.height/scaleDownFactor, 0, RenderTextureFormat.ARGB32);
-        inputTex.enableRandomWrite = true;
-        inputTex.Create();
+        if (inputRTex != null) inputRTex.Release();
+        inputRTex = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGB32);
+        inputRTex.enableRandomWrite = true;
+        inputRTex.Create();
 
         if (!camIsMain) {
             cam.enabled = true;
             if (matchMainCamSettings) doMatchMainCamSettings(cam);
         }
 
-        cam.targetTexture = inputTex;
+        cam.targetTexture = inputRTex;
         cam.Render();
         cam.targetTexture = null;
 
         if (!camIsMain) {
             cam.enabled = false;
         }
+
+        Debug.Log("Screen: " + Screen.width + ", " + Screen.height + "\n" + 
+                  "inputRTex: " + inputRTex.width + ", " + inputRTex.height);
     }
 
     private void doMatchMainCamSettings(Camera cam) {
