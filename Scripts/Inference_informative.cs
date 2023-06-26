@@ -61,6 +61,8 @@ public class Inference_informative : MonoBehaviour {
 
     private IEnumerator DoInferenceCR() {
         ready = false;
+        yield return new WaitForEndOfFrame();
+
         Screenshot(cam);
 
         if (infRTex != null) infRTex.Release();
@@ -133,7 +135,6 @@ public class Inference_informative : MonoBehaviour {
         }
 
         ready = true;
-        yield return null;
     }
 
    private void OnDestroy() {
