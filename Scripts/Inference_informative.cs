@@ -16,6 +16,7 @@ public class Inference_informative : MonoBehaviour {
     public Material targetMtl;
     public string targetMtlProp = "_MainTex";
     public bool displayOutputTexture = true;
+    public bool hideRenderLayer = true;
     public LightningArtist latk;
     public float skeleton_threshold = 0.5f;
     public int trace_c = 10;
@@ -61,6 +62,8 @@ public class Inference_informative : MonoBehaviour {
 
     private IEnumerator DoInferenceCR() {
         ready = false;
+        if (hideRenderLayer) ChangeRenderLayer(latk.transform, LayerMask.NameToLayer("Hidden"), true);
+
         yield return new WaitForEndOfFrame();
 
         Screenshot(cam);
@@ -133,6 +136,8 @@ public class Inference_informative : MonoBehaviour {
         for (int i=0; i<separatedStrokes.Count; i++) {
             latk.inputInstantiateStroke(latk.mainColor, separatedStrokes[i]);
         }
+
+        if (hideRenderLayer) ChangeRenderLayer(latk.transform, LayerMask.NameToLayer("Default"), true);
 
         ready = true;
     }
@@ -249,6 +254,17 @@ public class Inference_informative : MonoBehaviour {
         separated.Add(currentList);
 
         return separated;
+    }
+
+    private void ChangeRenderLayer(Transform target, int newLayerIndex, bool changeChildren) {
+        target.gameObject.layer = newLayerIndex;
+
+        if (changeChildren) {
+            for (int i = 0; i < target.childCount; i++) {
+                Transform child = target.GetChild(i);
+                ChangeRenderLayer(child, newLayerIndex, true);
+            }
+        }
     }
 
 }
